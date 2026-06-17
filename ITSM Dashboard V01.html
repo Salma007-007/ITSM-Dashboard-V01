@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vendor Wallet Refill Automation Monitoring Dashboard</title>
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Consulting Style CSS */
+        :root {
+            --bg-color: #f1f5f9;
+            --card-bg: #ffffff;
+            --primary: #0f172a; /* Deep slate */
+            --secondary: #475569;
+            --accent: #2563eb; /* Professional blue */
+            --success: #059669;
+            --warning: #d97706;
+            --danger: #dc2626;
+            --border: #e2e8f0;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.5;
+            padding: 2rem;
+        }
+        .container { max-width: 1440px; margin: 0 auto; }
+
+        /* Header */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 2px solid var(--border);
+        }
+        .header-left h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--primary);
+            letter-spacing: -0.025em;
+            margin-bottom: 0.5rem;
+        }
+        .header-left .subtitle {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        
+        /* Process Health Status */
+        .health-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            background-color: #d1fae5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+        .health-status.yellow {
+            background-color: #fef3c7;
+            color: #92400e;
+            border-color: #fde68a;
+        }
+        .health-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: currentColor;
+            box-shadow: 0 0 0 2px rgba(255,255,255,0.5);
+        }
+
+        .header-actions button {
+            padding: 0.5rem 1rem;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+        .header-actions button:hover { background: #1e293b; }
+
+        /* Executive Summary Bar */
+        .exec-summary-bar {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1px;
+            background: var(--border);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow);
+        }
+        .exec-summary-item {
+            background: var(--card-bg);
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+        }
+        .exec-summary-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+        .exec-summary-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+            display: flex;
+            align-items: baseline;
+            gap: 0.75rem;
+        }
+        .exec-summary-trend {
+            font-size: 0.875rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+        .trend-up { color: var(--success); }
+        .trend-down { color: var(--danger); }
+
+        /* Filters */
+        .filters-section {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: var(--card-bg);
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+        }
+        .filter-group label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+        .filter-group select {
+            border: none;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--primary);
+            outline: none;
+            background: transparent;
+            cursor: pointer;
+        }
+
+        /* Section Headers */
+        .section-header {
+            margin: 2.5rem 0 1.5rem 0;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+        .section-header h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .section-header h2 i {
+            color: var(--secondary);
+            font-size: 1rem;
+        }
+
+        /* Charts Grid */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+        }
+        .chart-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
+            height: 400px; /* Consistent height */
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .chart-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+        .chart-card h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 0.25rem;
+        }
+        .chart-card p.chart-subtitle {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 1.5rem;
+        }
+        .chart-container {
+            flex-grow: 1;
+            position: relative;
+            min-height: 0; /* Important for flex child containing canvas */
+        }
+
+        /* Funnel Stats Grid */
+        .funnel-stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+        .funnel-stat-box {
+            background: var(--bg-color);
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+        .funnel-stat-label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+        .funnel-stat-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        @media (max-width: 1024px) {
+            .exec-summary-bar { grid-template-columns: repeat(2, 1fr); }
+            .charts-grid { grid-template-columns: 1fr; }
+            .funnel-stats-grid { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 640px) {
+            .exec-summary-bar { grid-template-columns: 1fr; }
+            header { flex-direction: column; gap: 1rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <div class="header-left">
+            <h1>Vendor Wallet Refill Automation</h1>
+            <div class="subtitle">
+                <span>Executive Monitoring Dashboard</span>
+                <span>•</span>
+                <span>Last updated: <span id="current-time"></span></span>
+                <span>•</span>
+                <div class="health-status" id="health-status-indicator">
+                    <div class="health-indicator"></div>
+                    <span id="health-status-text">Process Health: Healthy</span>
+                </div>
+            </div>
+        </div>
+        <div class="header-actions">
+            <button><i class="fas fa-download mr-2"></i> Export Report</button>
+        </div>
+    </header>
+
+    <!-- Filters -->
+    <section class="filters-section">
+        <div class="filter-group">
+            <label>Period:</label>
+            <select id="filter-period" onchange="updateDashboard()">
+                <option value="all">All Year</option>
+                <option value="q1">Q1 (Jan-Mar)</option>
+                <option value="q2">Q2 (Apr-Jun)</option>
+                <option value="q3">Q3 (Jul-Sep)</option>
+                <option value="q4">Q4 (Oct-Dec)</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>Vendor:</label>
+            <select id="filter-vendor" onchange="updateDashboard()">
+                <option value="all">All Vendors</option>
+                <option value="Vendor A">Vendor A</option>
+                <option value="Vendor B">Vendor B</option>
+                <option value="Vendor C">Vendor C</option>
+                <option value="Vendor D">Vendor D</option>
+                <option value="Vendor E">Vendor E</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>Refill Type:</label>
+            <select id="filter-type" onchange="updateDashboard()">
+                <option value="all">All Types</option>
+                <option value="Recharge Card">Recharge Card</option>
+                <option value="E-Top Up">E-Top Up</option>
+                <option value="Bill Payment">Bill Payment</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>Status:</label>
+            <select id="filter-status" onchange="updateDashboard()">
+                <option value="all">All Statuses</option>
+                <option value="Success">Success</option>
+                <option value="Failed">Failed</option>
+            </select>
+        </div>
+    </section>
+
+    <!-- Executive Summary Bar -->
+    <div class="exec-summary-bar">
+        <div class="exec-summary-item">
+            <span class="exec-summary-label">Total Transactions</span>
+            <div class="exec-summary-value">
+                <span id="kpi-tx">0</span>
+                <span class="exec-summary-trend trend-up" id="kpi-tx-trend"><i class="fas fa-arrow-up"></i> 5.2%</span>
+            </div>
+        </div>
+        <div class="exec-summary-item">
+            <span class="exec-summary-label">Total Revenue</span>
+            <div class="exec-summary-value">
+                <span id="kpi-rev">$0</span>
+                <span class="exec-summary-trend trend-up" id="kpi-rev-trend"><i class="fas fa-arrow-up"></i> 3.8%</span>
+            </div>
+        </div>
+        <div class="exec-summary-item">
+            <span class="exec-summary-label">Automation Rate</span>
+            <div class="exec-summary-value">
+                <span id="kpi-auto">0%</span>
+                <span class="exec-summary-trend trend-up" id="kpi-auto-trend"><i class="fas fa-arrow-up"></i> 4.1%</span>
+            </div>
+        </div>
+        <div class="exec-summary-item">
+            <span class="exec-summary-label">Avg Processing Time</span>
+            <div class="exec-summary-value">
+                <span id="kpi-time">0 Min</span>
+                <span class="exec-summary-trend trend-success" style="color: var(--success);" id="kpi-time-trend"><i class="fas fa-arrow-down"></i> 96%</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section: Process Efficiency Funnel -->
+    <div class="section-header">
+        <h2><i class="fas fa-filter"></i> Process Efficiency Funnel</h2>
+    </div>
+    <div class="charts-grid" style="grid-template-columns: 1fr;">
+        <div class="chart-card" style="height: auto;">
+            <h3>End-to-End Conversion Funnel</h3>
+            <p class="chart-subtitle">Drop-off rates across the vendor wallet refill lifecycle</p>
+            <div style="display: flex; gap: 2rem; align-items: center; flex-wrap: wrap;">
+                <div class="chart-container" style="flex: 2; height: 350px; min-width: 300px;">
+                    <canvas id="funnelChart"></canvas>
+                </div>
+                <div style="flex: 1; min-width: 250px;" class="funnel-stats-grid">
+                    <!-- Conversion Stats -->
+                    <div class="funnel-stat-box">
+                        <div class="funnel-stat-label">Verification Initiation Rate</div>
+                        <div class="funnel-stat-value" id="conv-init">0%</div>
+                    </div>
+                    <div class="funnel-stat-box">
+                        <div class="funnel-stat-label">Payment Verification Success</div>
+                        <div class="funnel-stat-value" id="conv-ver">0%</div>
+                    </div>
+                    <div class="funnel-stat-box">
+                        <div class="funnel-stat-label">Approval Rate</div>
+                        <div class="funnel-stat-value" id="conv-app">0%</div>
+                    </div>
+                    <div class="funnel-stat-box">
+                        <div class="funnel-stat-label">Activation Rate</div>
+                        <div class="funnel-stat-value" id="conv-act">0%</div>
+                    </div>
+                    <div class="funnel-stat-box" style="grid-column: 1 / -1;">
+                        <div class="funnel-stat-label">Revenue Recognition Rate</div>
+                        <div class="funnel-stat-value" id="conv-rec">0%</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section: Operational Monitoring -->
+    <div class="section-header">
+        <h2><i class="fas fa-cogs"></i> Operational Monitoring</h2>
+    </div>
+    <div class="charts-grid">
+        <div class="chart-card">
+            <h3>Refill Requests by Type</h3>
+            <p class="chart-subtitle">Distribution of transaction volume across product lines</p>
+            <div class="chart-container">
+                <canvas id="refillTypeChart"></canvas>
+            </div>
+        </div>
+        <div class="chart-card">
+            <h3>Payment Verification Status</h3>
+            <p class="chart-subtitle">Success rate vs. failure reasons in Bank API validation</p>
+            <div class="chart-container">
+                <canvas id="verificationChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section: Vendor Performance -->
+    <div class="section-header">
+        <h2><i class="fas fa-building"></i> Vendor Performance</h2>
+    </div>
+    <div class="charts-grid">
+        <div class="chart-card">
+            <h3>Top Vendors by Transaction Value</h3>
+            <p class="chart-subtitle">Leading distributors by total processed value ($)</p>
+            <div class="chart-container">
+                <canvas id="topVendorsValueChart"></canvas>
+            </div>
+        </div>
+        <div class="chart-card">
+            <h3>Vendor Success vs Rejection Rate</h3>
+            <p class="chart-subtitle">Approval rates by top vendors</p>
+            <div class="chart-container">
+                <canvas id="vendorSuccessRateChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section: Financial Performance -->
+    <div class="section-header">
+        <h2><i class="fas fa-chart-line"></i> Financial Performance</h2>
+    </div>
+    <div class="charts-grid">
+        <div class="chart-card">
+            <h3>Revenue vs Deferred Revenue Trend</h3>
+            <p class="chart-subtitle">Monthly progression of activated vs pending revenue ($M)</p>
+            <div class="chart-container">
+                <canvas id="revenueTrendChart"></canvas>
+            </div>
+        </div>
+        <div class="chart-card">
+            <h3>Revenue by Refill Type</h3>
+            <p class="chart-subtitle">Total revenue generated per product category ($M)</p>
+            <div class="chart-container">
+                <canvas id="revenueByTypeChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section: Automation Efficiency -->
+    <div class="section-header">
+        <h2><i class="fas fa-bolt"></i> Automation Efficiency</h2>
+    </div>
+    <div class="charts-grid">
+        <div class="chart-card">
+            <h3>Processing Time Trend</h3>
+            <p class="chart-subtitle">Average end-to-end processing time over the year</p>
+            <div class="chart-container">
+                <canvas id="processingTimeTrendChart"></canvas>
+            </div>
+        </div>
+        <div class="chart-card">
+            <h3>Average Processing Time (Before vs After)</h3>
+            <p class="chart-subtitle">Time spent per stage (Logarithmic Scale)</p>
+            <div class="chart-container">
+                <canvas id="efficiencyComparisonChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Set current time
+    document.getElementById('current-time').innerText = new Date().toLocaleString();
+
+    // Global Chart Defaults for Consulting Style
+    Chart.defaults.font.family = "'Inter', sans-serif";
+    Chart.defaults.color = '#64748b';
+    Chart.defaults.plugins.legend.labels.usePointStyle = true;
+    Chart.defaults.plugins.legend.labels.boxWidth = 8;
+    Chart.defaults.plugins.legend.position = 'bottom';
+    Chart.defaults.elements.bar.borderWidth = 0;
+    Chart.defaults.elements.line.borderWidth = 2;
+
+    const colors = {
+        primary: '#0f172a',
+        blue: '#2563eb',
+        lightBlue: '#60a5fa',
+        green: '#059669',
+        lightGreen: '#34d399',
+        purple: '#7c3aed',
+        orange: '#d97706',
+        red: '#dc2626',
+        slate: '#64748b',
+        lightSlate: '#cbd5e1'
+    };
+
+    const commonOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: true,
+                position: 'bottom',
+                labels: { padding: 20, font: { size: 11 } }
+            },
+            tooltip: {
+                backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                titleFont: { size: 13 },
+                bodyFont: { size: 12 },
+                padding: 10,
+                cornerRadius: 4,
+                displayColors: true
+            }
+        }
+    };
+
+    const axisOptions = {
+        x: {
+            grid: { display: false, drawBorder: false },
+            ticks: { font: { size: 11 } }
+        },
+        y: {
+            grid: { color: '#f1f5f9', drawBorder: false },
+            ticks: { font: { size: 11 } }
+        }
+    };
+
+    // --- 1. Generate Realistic Telecom Financial Dummy Data ---
+    const transactions = [];
+    const vendors = ['Vendor A', 'Vendor B', 'Vendor C', 'Vendor D', 'Vendor E'];
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    
+    // Generate 5000 records to ensure realistic distributions
+    for (let i = 0; i < 5000; i++) {
+        // Refill Type Distribution: ~50% Recharge Card, ~35% E-Top Up, ~15% Bill Payment
+        let typeRand = Math.random();
+        let refillType = typeRand < 0.50 ? 'Recharge Card' : (typeRand < 0.85 ? 'E-Top Up' : 'Bill Payment');
+        
+        // Amount/Revenue logic based on type
+        let amount = 0;
+        if (refillType === 'Recharge Card') amount = Math.floor(Math.random() * 50) + 10; // $10 - $60
+        else if (refillType === 'E-Top Up') amount = Math.floor(Math.random() * 200) + 50; // $50 - $250
+        else amount = Math.floor(Math.random() * 800) + 200; // $200 - $1000
+        
+        // Automation Rate: 80-92%
+        let isAutomated = Math.random() < 0.88; 
+        
+        // Status: ~95% Success
+        let status = Math.random() < 0.95 ? 'Success' : 'Failed';
+        
+        // Processing Time: Before (Manual) 2-4 hours (120-240 mins), After (Auto) 3-8 mins
+        let processingTime = isAutomated ? (Math.random() * 5 + 3) : (Math.random() * 120 + 120);
+        
+        transactions.push({
+            id: i,
+            monthIndex: Math.floor(Math.random() * 12),
+            vendor: vendors[Math.floor(Math.random() * vendors.length)],
+            refillType: refillType,
+            status: status,
+            amount: amount,
+            revenue: amount, // Treating transaction amount as revenue for telecom
+            commission: amount * (Math.random() * 0.03 + 0.03), // 3-6% commission
+            automationType: isAutomated ? 'Automated' : 'Manual',
+            processingTime: processingTime
+        });
+    }
+
+    // --- 2. Chart Instances ---
+    let funnelChart, refillTypeChart, verificationChart, topVendorsValueChart, vendorSuccessRateChart;
+    let revenueTrendChart, revenueByTypeChart, processingTimeTrendChart, efficiencyComparisonChart;
+
+    function initCharts() {
+        // Process Efficiency Funnel
+        funnelChart = new Chart(document.getElementById('funnelChart'), {
+            type: 'bar',
+            data: {
+                labels: [
+                    'Requests Submitted',
+                    'Verification Initiated',
+                    'Payment Verified',
+                    'Requests Approved',
+                    'Transactions Activated',
+                    'Revenue Recognized'
+                ],
+                datasets: [
+                    {
+                        // Transparent padding for centered funnel effect
+                        data: [],
+                        backgroundColor: 'transparent',
+                        hoverBackgroundColor: 'transparent',
+                        borderWidth: 0
+                    },
+                    {
+                        // Actual funnel bars
+                        label: 'Volume',
+                        data: [],
+                        backgroundColor: [
+                            colors.primary,
+                            colors.blue,
+                            colors.lightBlue,
+                            colors.green,
+                            colors.lightGreen,
+                            colors.purple
+                        ],
+                        borderRadius: 4
+                    }
+                ]
+            },
+            options: {
+                ...commonOptions,
+                indexAxis: 'y',
+                plugins: { 
+                    legend: { display: false },
+                    tooltip: {
+                        filter: function(tooltipItem) {
+                            return tooltipItem.datasetIndex === 1; // Only show tooltip for the visible bar
+                        }
+                    }
+                },
+                scales: {
+                    x: { stacked: true, display: false }, // Hide x axis for cleaner funnel look
+                    y: { stacked: true, grid: { display: false, drawBorder: false }, ticks: { font: { size: 11, weight: '500' } } }
+                }
+            }
+        });
+
+        // Operational Monitoring
+        refillTypeChart = new Chart(document.getElementById('refillTypeChart'), {
+            type: 'doughnut',
+            data: { labels: [], datasets: [{ data: [], backgroundColor: [colors.blue, colors.green, colors.purple], borderWidth: 2, borderColor: '#ffffff', cutout: '65%' }] },
+            options: commonOptions
+        });
+
+        verificationChart = new Chart(document.getElementById('verificationChart'), {
+            type: 'bar',
+            data: { labels: ['Verified Success', 'Bank API Timeout', 'Insufficient Funds', 'Invalid Reference', 'Fraud Flag'], datasets: [{ label: '% of Transactions', data: [], backgroundColor: [colors.green, colors.orange, colors.red, colors.slate, colors.primary], borderRadius: 4 }] },
+            options: { ...commonOptions, plugins: { legend: { display: false } }, scales: { x: axisOptions.x, y: { ...axisOptions.y, title: { display: true, text: 'Percentage (%)', font: { size: 10 } } } } }
+        });
+
+        // Vendor Performance
+        topVendorsValueChart = new Chart(document.getElementById('topVendorsValueChart'), {
+            type: 'bar',
+            data: { labels: [], datasets: [{ label: 'Transaction Value ($)', data: [], backgroundColor: colors.blue, borderRadius: 4 }] },
+            options: { ...commonOptions, indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { ...axisOptions.y, title: { display: true, text: 'Value in USD', font: { size: 10 } } }, y: axisOptions.x } }
+        });
+
+        vendorSuccessRateChart = new Chart(document.getElementById('vendorSuccessRateChart'), {
+            type: 'bar',
+            data: { labels: [], datasets: [{ label: 'Approved', data: [], backgroundColor: colors.green }, { label: 'Rejected', data: [], backgroundColor: colors.red }] },
+            options: { ...commonOptions, scales: { x: { ...axisOptions.x, stacked: true }, y: { ...axisOptions.y, stacked: true, max: 100, title: { display: true, text: 'Percentage (%)', font: { size: 10 } } } } }
+        });
+
+        // Financial Performance
+        revenueTrendChart = new Chart(document.getElementById('revenueTrendChart'), {
+            type: 'line',
+            data: { labels: months, datasets: [{ label: 'Activated Rev ($M)', data: [], borderColor: colors.primary, backgroundColor: colors.primary, tension: 0.3 }, { label: 'Deferred Rev ($M)', data: [], borderColor: colors.slate, backgroundColor: colors.slate, borderDash: [5, 5], tension: 0.3 }] },
+            options: { ...commonOptions, scales: { x: axisOptions.x, y: { ...axisOptions.y, title: { display: true, text: 'Revenue (Millions USD)', font: { size: 10 } } } } }
+        });
+
+        revenueByTypeChart = new Chart(document.getElementById('revenueByTypeChart'), {
+            type: 'bar',
+            data: { labels: ['Recharge Card', 'E-Top Up', 'Bill Payment'], datasets: [{ label: 'Revenue ($M)', data: [], backgroundColor: colors.lightBlue, borderRadius: 4 }] },
+            options: { ...commonOptions, plugins: { legend: { display: false } }, scales: { x: axisOptions.x, y: { ...axisOptions.y, title: { display: true, text: 'Revenue (Millions USD)', font: { size: 10 } } } } }
+        });
+
+        // Automation Efficiency
+        processingTimeTrendChart = new Chart(document.getElementById('processingTimeTrendChart'), {
+            type: 'line',
+            data: { labels: months, datasets: [{ label: 'Avg Processing Time (Min)', data: [], borderColor: colors.blue, backgroundColor: 'rgba(37, 99, 235, 0.1)', fill: true, tension: 0.4 }] },
+            options: { ...commonOptions, scales: { x: axisOptions.x, y: { ...axisOptions.y, title: { display: true, text: 'Minutes', font: { size: 10 } } } } }
+        });
+
+        efficiencyComparisonChart = new Chart(document.getElementById('efficiencyComparisonChart'), {
+            type: 'bar',
+            data: { labels: ['Data Entry', 'Bank Validation', 'ERP Booking', 'Reconciliation', 'Commission Calc'], datasets: [{ label: 'Before Automation (Min)', data: [], backgroundColor: colors.lightSlate, borderRadius: 4 }, { label: 'After Automation (Min)', data: [], backgroundColor: colors.blue, borderRadius: 4 }] },
+            options: { ...commonOptions, scales: { x: axisOptions.x, y: { ...axisOptions.y, type: 'logarithmic', title: { display: true, text: 'Time Units (Log Scale)', font: { size: 10 } } } } }
+        });
+    }
+
+    // --- 3. Update Dashboard Logic ---
+    function updateDashboard() {
+        const fPeriod = document.getElementById('filter-period').value;
+        const fVendor = document.getElementById('filter-vendor').value;
+        const fType = document.getElementById('filter-type').value;
+        const fStatus = document.getElementById('filter-status').value;
+
+        // Filter Dataset
+        const filtered = transactions.filter(t => {
+            let matchPeriod = true;
+            if (fPeriod === 'q1') matchPeriod = t.monthIndex >= 0 && t.monthIndex <= 2;
+            else if (fPeriod === 'q2') matchPeriod = t.monthIndex >= 3 && t.monthIndex <= 5;
+            else if (fPeriod === 'q3') matchPeriod = t.monthIndex >= 6 && t.monthIndex <= 8;
+            else if (fPeriod === 'q4') matchPeriod = t.monthIndex >= 9 && t.monthIndex <= 11;
+
+            let matchVendor = fVendor === 'all' || t.vendor === fVendor;
+            let matchType = fType === 'all' || t.refillType === fType;
+            let matchStatus = fStatus === 'all' || t.status === fStatus;
+
+            return matchPeriod && matchVendor && matchType && matchStatus;
+        });
+
+        // Update Health Status
+        const healthStatusEl = document.getElementById('health-status-indicator');
+        const healthTextEl = document.getElementById('health-status-text');
+        if (filtered.length === 0) {
+            healthStatusEl.className = 'health-status yellow';
+            healthTextEl.innerText = 'Process Health: No Data';
+        } else {
+            const failRate = filtered.filter(t => t.status === 'Failed').length / filtered.length;
+            if (failRate > 0.1) {
+                healthStatusEl.className = 'health-status yellow';
+                healthTextEl.innerText = 'Process Health: Delays Detected';
+            } else {
+                healthStatusEl.className = 'health-status';
+                healthTextEl.innerText = 'Process Health: Healthy';
+            }
+        }
+
+        // Calculate KPIs
+        const totalTx = filtered.length;
+        const totalRev = filtered.reduce((sum, t) => sum + t.revenue, 0);
+        const autoCount = filtered.filter(t => t.automationType === 'Automated').length;
+        const autoRate = totalTx > 0 ? (autoCount / totalTx) * 100 : 0;
+        const avgTime = totalTx > 0 ? filtered.reduce((sum, t) => sum + t.processingTime, 0) / totalTx : 0;
+
+        // Update DOM KPIs
+        document.getElementById('kpi-tx').innerText = totalTx.toLocaleString();
+        document.getElementById('kpi-rev').innerText = '$' + (totalRev / 1000000).toFixed(2) + 'M';
+        document.getElementById('kpi-auto').innerText = autoRate.toFixed(1) + '%';
+        document.getElementById('kpi-time').innerText = avgTime.toFixed(1) + ' Min';
+
+        // Update Charts Data
+        if (totalTx === 0) return; // Prevent division by zero errors if filters exclude everything
+
+        // 0. Funnel Chart
+        // Calculate funnel stages dynamically based on filtered totalTx to simulate realistic drop-offs
+        const reqSub = totalTx;
+        const verInit = Math.round(totalTx * (4300/4500));
+        const payVer = Math.round(totalTx * (4150/4500));
+        const reqApp = Math.round(totalTx * (4000/4500));
+        const txAct = Math.round(totalTx * (3950/4500));
+        const revRec = Math.round(totalTx * (3920/4500));
+
+        const funnelData = [reqSub, verInit, payVer, reqApp, txAct, revRec];
+        const maxVal = Math.max(...funnelData);
+        // Padding data creates the centered funnel effect
+        const paddingData = funnelData.map(val => (maxVal - val) / 2);
+
+        funnelChart.data.datasets[0].data = paddingData;
+        funnelChart.data.datasets[1].data = funnelData;
+        funnelChart.update();
+
+        // Update Funnel Conversion Stats
+        document.getElementById('conv-init').innerText = reqSub ? ((verInit / reqSub) * 100).toFixed(1) + '%' : '0%';
+        document.getElementById('conv-ver').innerText = verInit ? ((payVer / verInit) * 100).toFixed(1) + '%' : '0%';
+        document.getElementById('conv-app').innerText = payVer ? ((reqApp / payVer) * 100).toFixed(1) + '%' : '0%';
+        document.getElementById('conv-act').innerText = reqApp ? ((txAct / reqApp) * 100).toFixed(1) + '%' : '0%';
+        document.getElementById('conv-rec').innerText = txAct ? ((revRec / txAct) * 100).toFixed(1) + '%' : '0%';
+
+        // 1. Refill Type Chart
+        const typeCounts = { 'Recharge Card': 0, 'E-Top Up': 0, 'Bill Payment': 0 };
+        filtered.forEach(t => typeCounts[t.refillType]++);
+        refillTypeChart.data.labels = Object.keys(typeCounts);
+        refillTypeChart.data.datasets[0].data = Object.values(typeCounts);
+        refillTypeChart.update();
+
+        // 2. Verification Chart
+        const successCount = filtered.filter(t => t.status === 'Success').length;
+        const failedCount = totalTx - successCount;
+        const successPct = (successCount / totalTx) * 100;
+        const failedPct = (failedCount / totalTx) * 100;
+        // Distribute failed reasons realistically
+        verificationChart.data.datasets[0].data = [
+            successPct.toFixed(1),
+            (failedPct * 0.40).toFixed(1), // Timeout
+            (failedPct * 0.40).toFixed(1), // Insufficient
+            (failedPct * 0.15).toFixed(1), // Invalid Ref
+            (failedPct * 0.05).toFixed(1)  // Fraud
+        ];
+        verificationChart.update();
+
+        // 3. Top Vendors Value
+        const vendorRev = {};
+        vendors.forEach(v => vendorRev[v] = 0);
+        filtered.forEach(t => vendorRev[t.vendor] += t.revenue);
+        const sortedVendors = Object.entries(vendorRev).sort((a, b) => b[1] - a[1]);
+        topVendorsValueChart.data.labels = sortedVendors.map(v => v[0]);
+        topVendorsValueChart.data.datasets[0].data = sortedVendors.map(v => v[1]);
+        topVendorsValueChart.update();
+
+        // 4. Vendor Success Rate
+        const vendorSuccess = {};
+        vendors.forEach(v => vendorSuccess[v] = { success: 0, total: 0 });
+        filtered.forEach(t => {
+            vendorSuccess[t.vendor].total++;
+            if (t.status === 'Success') vendorSuccess[t.vendor].success++;
+        });
+        vendorSuccessRateChart.data.labels = sortedVendors.map(v => v[0]); // Keep same order as value chart
+        vendorSuccessRateChart.data.datasets[0].data = sortedVendors.map(v => {
+            const stats = vendorSuccess[v[0]];
+            return stats.total ? ((stats.success / stats.total) * 100).toFixed(1) : 0;
+        });
+        vendorSuccessRateChart.data.datasets[1].data = sortedVendors.map(v => {
+            const stats = vendorSuccess[v[0]];
+            return stats.total ? (((stats.total - stats.success) / stats.total) * 100).toFixed(1) : 0;
+        });
+        vendorSuccessRateChart.update();
+
+        // 5. Revenue Trend
+        const monthlyRev = Array(12).fill(0);
+        filtered.forEach(t => monthlyRev[t.monthIndex] += t.revenue);
+        revenueTrendChart.data.datasets[0].data = monthlyRev.map(v => (v / 1000000).toFixed(2));
+        // Deferred revenue is ~15% of activated
+        revenueTrendChart.data.datasets[1].data = monthlyRev.map(v => ((v * 0.15) / 1000000).toFixed(2));
+        revenueTrendChart.update();
+
+        // 6. Revenue By Type
+        const revByType = { 'Recharge Card': 0, 'E-Top Up': 0, 'Bill Payment': 0 };
+        filtered.forEach(t => revByType[t.refillType] += t.revenue);
+        revenueByTypeChart.data.datasets[0].data = [
+            (revByType['Recharge Card'] / 1000000).toFixed(2),
+            (revByType['E-Top Up'] / 1000000).toFixed(2),
+            (revByType['Bill Payment'] / 1000000).toFixed(2)
+        ];
+        revenueByTypeChart.update();
+
+        // 7. Processing Time Trend
+        const monthlyTime = Array(12).fill({ sum: 0, count: 0 });
+        filtered.forEach(t => {
+            monthlyTime[t.monthIndex] = {
+                sum: monthlyTime[t.monthIndex].sum + t.processingTime,
+                count: monthlyTime[t.monthIndex].count + 1
+            };
+        });
+        processingTimeTrendChart.data.datasets[0].data = monthlyTime.map(m => m.count ? (m.sum / m.count).toFixed(1) : 0);
+        processingTimeTrendChart.update();
+
+        // 8. Efficiency Comparison
+        const manualTx = filtered.filter(t => t.automationType === 'Manual');
+        const autoTx = filtered.filter(t => t.automationType === 'Automated');
+        
+        const avgManual = manualTx.length ? manualTx.reduce((sum, t) => sum + t.processingTime, 0) / manualTx.length : 180; // default 180 mins
+        const avgAuto = autoTx.length ? autoTx.reduce((sum, t) => sum + t.processingTime, 0) / autoTx.length : 5; // default 5 mins
+
+        // Distribute average time across stages (approximate breakdown)
+        efficiencyComparisonChart.data.datasets[0].data = [
+            (avgManual * 0.10).toFixed(1), // Data Entry
+            (avgManual * 0.20).toFixed(1), // Bank Validation
+            (avgManual * 0.15).toFixed(1), // ERP Booking
+            (avgManual * 0.40).toFixed(1), // Reconciliation
+            (avgManual * 0.15).toFixed(1)  // Commission Calc
+        ];
+        efficiencyComparisonChart.data.datasets[1].data = [
+            (avgAuto * 0.10).toFixed(1),
+            (avgAuto * 0.20).toFixed(1),
+            (avgAuto * 0.15).toFixed(1),
+            (avgAuto * 0.40).toFixed(1),
+            (avgAuto * 0.15).toFixed(1)
+        ];
+        efficiencyComparisonChart.update();
+    }
+
+    // Initialize on load
+    window.onload = () => {
+        initCharts();
+        updateDashboard();
+    };
+
+</script>
+
+</body>
+</html>
